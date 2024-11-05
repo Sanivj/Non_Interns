@@ -1,14 +1,20 @@
 import React,{useState} from 'react'
 import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
 import { Input } from '@/components/ui/input';
-import { SelectBudgetOption,SelectTravelsList } from '@/constants/options';
+import { AI_PROMPT, SelectBudgetOption,SelectTravelsList } from '@/constants/options';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { chatSession } from '@/service/AI_model';
+
+
 function CreateTrip() {
   const [destination, setDestination] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [days, setDays] = useState('');
   const [budget, setBudget] = useState(null);
   const [travelCompanion, setTravelCompanion] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [tripResult, setTripResult] = useState(null);
 
   const geocodingClient = mbxGeocoding({
     accessToken: import.meta.env.VITE_MAP_BOX_API_KEY,
@@ -43,6 +49,8 @@ function CreateTrip() {
   // Handle input change and fetch suggestions
   const handleInputChange = (e) => {
     const value = e.target.value;
+    const name=e.target.name;
+    
     setDestination(value);
     fetchSuggestions(value);
   };
@@ -50,18 +58,38 @@ function CreateTrip() {
   // Handle selection of a suggestion
   const handleSuggestionSelect = (place) => {
     setDestination(place.place_name);
-    console.log(place.place_name);
     setSuggestions([]);
   };
 
-  const handleGenerateTrip = () => {
+  const handleGenerateTrip = async () => {
     const tripData = {
       destination,
       days,
       budget,
       travelCompanion,
     };
-    console.log('Trip Data:', tripData);
+    if(!destination||!days||!budget||!travelCompanion){
+      toast("Please fill whole information");
+      return;
+    }
+    if(parseInt(days)>5){
+      console.log("Please enter number of days less than 5");
+      return;
+     }
+    
+    setLoading(true);
+    setTripResult(null);
+    
+    const finalAIprompt=AI_PROMPT
+    .replace('{location}',tripData?.destination)
+    .replace('{days}',tripData?.days)
+    .replace('{travelCompanion}',tripData?.travelCompanion)
+    .replace('{budget}',tripData.budget)
+    .replace('{days}',tripData?.days)
+    console.log(finalAIprompt)
+    const res=await chatSession.sendMessage(finalAIprompt)
+
+    console.log(res?.response?.text())
     setDestination('');
     setDays('');
     setBudget(null);
@@ -110,7 +138,7 @@ function CreateTrip() {
         <div className='grid grid-cols-3 gap-5 mt-5'>
           {SelectBudgetOption.map((item,index)=>(
             <div key={index}
-            className={`p-4 border rounded-lg hover:shadow cursor-pointer text-center ${budget===item.title?'bg-gray-200':''}`} 
+            className={`p-4 border rounded-lg hover:shadow cursor-pointer text-center ${budget===item.title?'bg-gray-200 shadow-lg border-black':''}`} 
             onClick={()=>setBudget(item.title)}>
                 <h2 className='text-4xl'>{item.icon}</h2>
                 <h2 className='font-bold text-lg'>{item.title}</h2>
@@ -124,7 +152,7 @@ function CreateTrip() {
         <div className='grid grid-cols-3 gap-5 mt-5 mb-5'>
           {SelectTravelsList.map((item,index)=>(
             <div key={index} 
-            className={`p-4 border rounded-lg hover:shadow cursor-pointer text-center ${travelCompanion===item.title? 'bg-gray-200' : ''}`}
+            className={`p-4 border rounded-lg hover:shadow cursor-pointer text-center ${travelCompanion===item.title? 'bg-gray-200 shadow-lg border-black' : ''}`}
             onClick={()=>setTravelCompanion(item.title)}>
                 <h2 className='text-4xl'>{item.icon}</h2>
                 <h2 className='font-bold text-lg'>{item.title}</h2>
@@ -134,8 +162,17 @@ function CreateTrip() {
         </div>
       </div>
           <div className='my-10 justify-end flex'>
-          <Button onClick={handleGenerateTrip}>Generate Trip</Button>
+          <Button onClick={handleGenerateTrip} disabled={loading}>{loading?'Generating....':'Generate Trip'}</Button>
           </div>
+          {/*Display generated trip plan */}
+          {
+            tripResult&&(
+              <div className='mt-10'>
+                <h2 className='font-bold text-xl'>Your custom travel plan</h2>
+                <pre className='bg-gray-100 p-4 rounded mt-3'>{JSON.stringify(tripResult,null,2)}</pre>
+              </div>
+            )
+          }
     </div>
   )
 }
