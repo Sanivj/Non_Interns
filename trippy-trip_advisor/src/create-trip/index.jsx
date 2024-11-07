@@ -16,6 +16,9 @@ import {
 import { FcGoogle } from "react-icons/fc";
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/service/firsbaseConfig';
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 function CreateTrip() {
   const [destination, setDestination] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -108,10 +111,13 @@ function CreateTrip() {
     .replace('{travelCompanion}',tripData?.travelCompanion)
     .replace('{budget}',tripData.budget)
     .replace('{days}',tripData?.days)
-    console.log(finalAIprompt)
+    //console.log(finalAIprompt)
     const res=await chatSession.sendMessage(finalAIprompt)
 
     console.log(res?.response?.text())
+    setLoading(false)
+    SaveAitrip(res?.response?.text())
+
     setDestination('');
     setDays('');
     setBudget(null);
@@ -120,6 +126,20 @@ function CreateTrip() {
     
   };
   
+  const SaveAitrip=async(TripData)=>{
+    setLoading(true)
+
+    const user=JSON.parse(localStorage.getItem('user'))
+    const docID=Date.now().toString()  
+    await setDoc(doc(db, "AItrips", docID), {
+      userSelection:JSON.parse(TripData),
+      tripData:JSON.parse(TripData),
+      userEmail:user?.email,
+      id:docID
+    });
+    setLoading(false)
+  }
+
   const GetUserProfile=(tokenInfo)=>{
     axios.get(`https:\\www.googleapis.com/oauth2/v1/userinfo?access_token=${tokenInfo?.access_token}`,
       {
@@ -201,7 +221,7 @@ function CreateTrip() {
         </div>
       </div>
           <div className='my-10 justify-end flex'>
-          <Button onClick={handleGenerateTrip} disabled={loading}>{loading?'Generating....':'Generate Trip'}</Button>
+          <Button onClick={handleGenerateTrip} disabled={loading}>{loading?<AiOutlineLoading3Quarters className='h-7 w-7 animate-spin' />:'Generate Trip'}</Button>
           </div>
           <Dialog open={openDialog}>
             
@@ -212,8 +232,11 @@ function CreateTrip() {
                   <img src="/logo.svg"/>
                   <h2 className='font-bold text-lg mt-7'>Sign In with google</h2>
                   <p>Sign in to the app with Google Authentication Securely</p>
-                  <Button onClick={login} className="w-full mt-5 flex gap-4 items-center">
-                  <FcGoogle className='h-7 w-7' />Sign In with google</Button>
+                  <Button onClick={login}  className="w-full mt-5 flex gap-4 items-center">
+                  
+                  <FcGoogle className='h-7 w-7' />Sign In with google
+                  
+                  </Button>
                 </DialogDescription>
               </DialogHeader>
             </DialogContent>
