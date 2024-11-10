@@ -5,15 +5,8 @@ import { AI_PROMPT, SelectBudgetOption,SelectTravelsList } from '@/constants/opt
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { chatSession } from '@/service/AI_model';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { FcGoogle } from "react-icons/fc";
+
+
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { doc, setDoc } from 'firebase/firestore';
@@ -28,7 +21,7 @@ function CreateTrip() {
   const [travelCompanion, setTravelCompanion] = useState(null);
   const [loading, setLoading] = useState(false);
   const [tripResult, setTripResult] = useState(null);
-  const [openDialog,setDialog]=useState(false);
+  
   const navigate=useNavigate();
   const geocodingClient = mbxGeocoding({
     accessToken: import.meta.env.VITE_MAP_BOX_API_KEY,
@@ -76,10 +69,7 @@ function CreateTrip() {
     setSuggestions([]);
   };
 
-  const login=useGoogleLogin({
-    onSuccess:(codeResp)=>GetUserProfile(codeResp),
-    onError:(error)=>console.log(error)
-  })
+
 
   const handleGenerateTrip = async () => {
     
@@ -153,21 +143,7 @@ function CreateTrip() {
     navigate('/view-trip/'+docID)
   }
 
-  const GetUserProfile=(tokenInfo)=>{
-    axios.get(`https:\\www.googleapis.com/oauth2/v1/userinfo?access_token=${tokenInfo?.access_token}`,
-      {
-        headers:{
-          Authorization:`Bearer ${tokenInfo?.access_token}`,
-          Accept:'Application/json'
-        }
-      }
-    ).then((resp)=>{
-      console.log(resp);
-      localStorage.setItem('user',JSON.stringify(resp.data))
-      setDialog(false);
-      handleGenerateTrip();
-    })
-  }
+ 
 
   return (
     <div className='sm:px-10 md:px-32 lg:px-56 xl:px-10 px-5 mt-10'>
@@ -236,24 +212,7 @@ function CreateTrip() {
           <div className='my-10 justify-end flex'>
           <Button onClick={handleGenerateTrip} disabled={loading}>{loading?<AiOutlineLoading3Quarters className='h-7 w-7 animate-spin' />:'Generate Trip'}</Button>
           </div>
-          <Dialog open={openDialog}>
-            
-            <DialogContent>
-              <DialogHeader>
-
-                <DialogDescription>
-                  <img src="/logo.svg"/>
-                  <h2 className='font-bold text-lg mt-7'>Sign In with google</h2>
-                  <p>Sign in to the app with Google Authentication Securely</p>
-                  <Button onClick={login}  className="w-full mt-5 flex gap-4 items-center">
-                  
-                  <FcGoogle className='h-7 w-7' />Sign In with google
-                  
-                  </Button>
-                </DialogDescription>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
+          
 
           {/*Display generated trip plan */}
           {
