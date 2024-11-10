@@ -19,6 +19,7 @@ import axios from 'axios';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/service/firsbaseConfig';
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { useNavigate } from 'react-router-dom';
 function CreateTrip() {
   const [destination, setDestination] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -28,9 +29,11 @@ function CreateTrip() {
   const [loading, setLoading] = useState(false);
   const [tripResult, setTripResult] = useState(null);
   const [openDialog,setDialog]=useState(false);
+  const navigate=useNavigate();
   const geocodingClient = mbxGeocoding({
     accessToken: import.meta.env.VITE_MAP_BOX_API_KEY,
    });
+  
 
   // Function to fetch autocomplete suggestions based on user input
   const fetchSuggestions = async (query) => {
@@ -131,13 +134,23 @@ function CreateTrip() {
 
     const user=JSON.parse(localStorage.getItem('user'))
     const docID=Date.now().toString()  
+    const tripDatawithLabel={
+      budget:budget,
+      location:{
+        label:destination,
+      },
+      value:JSON.parse(TripData),
+      noOfDays:days,     
+      traveller:travelCompanion
+    }
     await setDoc(doc(db, "AItrips", docID), {
-      userSelection:JSON.parse(TripData),
+      userSelection: tripDatawithLabel,
       tripData:JSON.parse(TripData),
       userEmail:user?.email,
       id:docID
     });
     setLoading(false)
+    navigate('/view-trip/'+docID)
   }
 
   const GetUserProfile=(tokenInfo)=>{
